@@ -17,10 +17,8 @@ from datetime import datetime
 
 app = Flask(__name__, template_folder='templates')
 request_count = 0
-active_connections = threading.local()
 app.secret_key = secrets.token_hex(16)  # Sicherer Schlüssel für die Sessions
 
-#logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 print("Templates-Verzeichnis:", os.path.abspath("templates"))
 logging.debug("Debug message")
 logging.info("Info message")
@@ -45,6 +43,7 @@ def validate_name(name):
     if re.match(r"^[a-zA-ZäöüßÄÖÜ\s-]+$", name):
         return True
     return False
+
 @app.errorhandler(404)
 def page_not_found(e):
     print(f"{bcolors.FAIL}Fehler 404 aufgetreten: {e}{bcolors.ENDC}")  # Fehlerprotokollierung
@@ -116,8 +115,6 @@ def generate_user_id(registration_number, age_user, jahrgang):
     random_suffix =''.join(random.choice(random_charakters_bar) for _ in range(10))
     #bei range(10) gibt es 53,783,827,851,266,404,096 verschiedene kombinationen, für dekodierung über 3 Jahre
     return personal_data + random_suffix
-def random_background_color():
-    return (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
 def add_user_to_db(vorname, nachname, age_user, jahrgang, identifier, ip_address):
     conn = sqlite3.connect('datenbank.db')
     c = conn.cursor()
@@ -145,7 +142,6 @@ def generate_barcode(identifier):
     except Exception as e:
         print(f"{bcolors.WARNING}Fehler bei der Barcode-Erstellung: {e}{bcolors.ENDC}")
         return None
-    
 def init_stats_db():
     conn = sqlite3.connect('datenbank.db')
     c = conn.cursor()
@@ -293,6 +289,7 @@ def get_barcode(identifier):
 
 @app.route('/submit', methods=['POST'])
 def submit():
+    count_registrations_with_ip
     try:
         # Formulardaten abrufen und validieren
         vorname = request.form.get('vorname')
