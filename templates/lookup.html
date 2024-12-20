@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Daten überprüfen</title>
+	<style>
+		body {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			min-height: 100vh;
+			margin: 0;
+			background-color: #f3f3f3;
+			font-family: Arial, sans-serif;
+		}
+		.form-container {
+			background: #fff;
+			padding: 40px;
+			border-radius: 8px;
+			box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+			text-align: center;
+			width: 300px;
+		}
+		.form-container input, .form-container button {
+			width: 100%;
+			padding: 10px;
+			margin: 10px 0;
+			border: 1.3px solid #ccc;
+			border-radius: 4px;
+			font-size: 16px;
+		}
+		.form-container button {
+			background-color: #007bff;
+			color: white;
+			border: none;
+			cursor: pointer;
+		}
+		.form-container button:hover {
+			background-color: #0056b3;
+		}
+	</style>
+</head>
+<body>
+	<div class="form-container">
+		<h1>Daten überprüfen</h1>
+		<form action="/verify" method="post">
+			<input type="text" name="vorname" placeholder="Vorname" required>
+			<input type="text" name="nachname" placeholder="Nachname" required>
+			<input type="text" name="identifier" placeholder="Identifier" required>
+			<select name="alter" required>
+				<option value="" disabled selected>Alter</option>
+				<option value="9">9</option>
+				<option value="10">10</option>
+				<option value="11">11</option>
+				<option value="12">12</option>
+				<option value="13">13</option>
+				<option value="14">14</option>
+				<option value="15">15</option>
+				<option value="16">16</option>
+				<option value="17">17</option>
+				<option value="18">18+</option>
+			</select>
+			<select name="jahrgang" required>
+				<option value="" disabled selected>Jahrgang</option>
+				<option value="5">5</option>
+				<option value="6">6</option>
+				<option value="7">7</option>
+				<option value="8">8</option>
+				<option value="9">9</option>
+				<option value="10">10</option>
+				<option value="11">11</option>
+				<option value="12">12</option>
+			</select>
+			<button type="submit">Überprüfen</button>
+		</form>
+	</div>
+</body>
+</html>

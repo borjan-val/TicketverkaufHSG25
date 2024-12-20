@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fehler {{ error_code }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f8f9fa;
+            color: #333;
+            padding: 50px;
+        }
+        h1 {
+            font-size: 6em;
+            color: #dc3545;
+        }
+
+        h2 {
+            font-size: 3em;
+            color: #dc3545;
+        }
+        p {
+            font-size: 1.2em;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>ERROR</h1>
+    <h2>Fehler {{ error_code }}</h2>
+    <p>{{ error_message }}</p>
+</body>
+</html>
