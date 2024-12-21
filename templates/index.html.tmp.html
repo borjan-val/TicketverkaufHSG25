@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<link rel="icon" href="file:///Users/can/Documents/GitHub/TicketverkaufHSG25/templates/static/favicon.ico" type="image/x-icon">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Anmeldung</title>
+	<style>
+		body {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			min-height: 100vh;
+			margin: 0;
+			background-color: #f3f3f3;
+			font-family: Arial, sans-serif;
+		}
+		h1 {
+			margin-bottom: 20px;
+			color: #00000;
+			cursor: pointer; /* Macht die Überschrift klickbar */
+			text-decoration: underline;
+		}
+		.form-container {
+			background: #fff;
+			padding: 40px;
+			border-radius: 8px;
+			box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+			text-align: center;
+			width: 300px;
+			position: relative;
+		}
+		.form-container input{
+			width: 90%;
+			padding: 10px 10px;
+			margin: 10px;
+			border: 1.3px solid #ccc;
+			border-radius: 4px;
+			font-size: 16px;
+		}
+		.form-container select {
+			width: 100%;
+			padding: 10px 10px;
+			margin: 10px;
+			border: 1.3px solid #ccc;
+			border-radius: 4px;
+			font-size: 16px;
+		}
+		body {
+			background-color: #f0f0f0;      /* Standardfarbe, wenn kein Bild vorhanden ist */
+			background-image: url("file:///Users/can/Documents/GitHub/TicketverkaufHSG25/templates/static/images/wallpaper/image.jpeg");
+			background-size: cover;
+			background-position: center;
+			background-repeat: no-repeat;
+		}
+		.form-container button {
+			background-color: #007bff;
+			color: white;
+			border: none;
+			padding: 20px 50px;
+			border-radius: 15px;
+			margin: 10px;
+			font-size: 18px;
+			cursor: pointer;
+		}
+		h3 {
+			margin-top: 0;
+			color:#FF0000;
+		}
+		.form-container button:hover {
+			background-color: #0056b3;
+		}
+		#info-container {
+			display: none; /* Versteckt den Info-Container initial */
+			position: absolute;
+			top: 50px;
+			right: 0;
+			background: #fff;
+			padding: 20px;
+			border-radius: 8px;
+			box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+			text-align: left;
+			width: 200px;
+		}
+		#info-container h3 {
+			margin-top: 0;
+			color: #007bff;
+		}
+		#info-container p {
+			font-size: 14px;
+			color: #333;
+		}
+	</style>
+</head>
+<body>
+	<div class="form-container">
+		<h1 onclick="toggleInfo()">Anmeldung für die Schulparty</h1>
+		<form action="/submit" method="post">
+			<input type="text" name="vorname" placeholder="Vorname" required>
+			<input type="text" name="nachname" placeholder="Nachname" required>
+			<select name="age" required>
+				<option value="" disabled selected>Alter</option>
+				<option value="9">9</option>
+				<option value="10">10</option>
+				<option value="11">11</option>
+				<option value="12">12</option>
+				<option value="13">13</option>
+				<option value="14">14</option>
+				<option value="15">15</option>
+				<option value="16">16</option>
+				<option value="17">17</option>
+				<option value="18">18+</option>
+			</select>
+			<select name="jahrgang" required>
+				<option value="" disabled selected>Jahrgang</option>
+				<option value="5">5</option>
+				<option value="6">6</option>
+				<option value="7">7</option>
+				<option value="8">8</option>
+				<option value="9">9</option>
+				<option value="10">10</option>
+				<option value="11">11</option>
+				<option value="12">12</option>
+			</select>
+			<h3>Die Daten müssen mit deinem Schülerausweis übereinstimmen!</h3>
+			<button type="submit">Abschicken</button>
+		</form>
+		<div id="info-container">
+			<h3>INFO:</h3>
+			<p>Hier kannst du dich für die nächste Schulparty anmelden. Bitte fülle alle Felder aus und drücke auf "Abschicken". Danach musst du bezahlen und dein Ticket abscannen lassen damit es gültig wird. Jedes Ticket ist nur einmalig nutzbar und nicht übertragbar.</p>
+		</div>
+	</div>
+
+	<script>
+		function toggleInfo() {
+			// Toggle die Sichtbarkeit des Info-Containers
+			const infoContainer = document.getElementById('info-container');
+			infoContainer.style.display = infoContainer.style.display === 'block' ? 'none' : 'block';
+
+			// Schließt die Info-Box, wenn irgendwo anders auf der Seite geklickt wird
+			document.addEventListener('click', closeInfoOnClickOutside);
+		}
+
+		function closeInfoOnClickOutside(event) {
+			const infoContainer = document.getElementById('info-container');
+			if (!infoContainer.contains(event.target) && event.target.tagName !== 'H1') {
+				infoContainer.style.display = 'none';
+				document.removeEventListener('click', closeInfoOnClickOutside);
+			}
+		}
+	</script>
+</body>
+</html>
