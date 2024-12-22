@@ -18,16 +18,15 @@ from datetime import datetime
 app = Flask(__name__, template_folder='templates')
 request_count = 0
 app.secret_key = secrets.token_hex(16)  # Sicherer Schlüssel für die Sessions
-
+active_connections = 0  # Initialisierung der globalen Zählung
 print("Templates-Verzeichnis:", os.path.abspath("templates"))
 logging.debug("Debug message")
 logging.info("Info message")
 logging.warning("Warning message")
 logging.error("Error message")
 logging.critical("Critical message")
-
 # überprüft Pfade
-if print(os.path.exists("templates/index.html")) and print(os.path.exists("templates/error.html"))  == TRUE: # Soll True zurückgeben
+if os.path.exists("templates/index.html") and os.path.exists("templates/error.html"):
     print("Template Pfade 'index' und 'error' vorhanden = TRUE")
 
 #Zieht aktuelle Zeit für Insert in db
@@ -219,15 +218,14 @@ def init_db():
         os.makedirs('static/barcodes')
 init_db()
 
-#zählt Zugriffe auf Seite
 @app.before_request
 def before_request():
-    if not hasattr(active_connections, 'count'):
-        active_connections.count = 0
-    active_connections.count += 1
+    if 'active_connections' not in session:
+        session['active_connections'] = 0
+        
 @app.after_request
 def after_request(response):
-    active_connections.count -= 1
+    session['active_connections'] -= 1
     return response
 
 #ruft bei mobilen Geräten index.html auf
