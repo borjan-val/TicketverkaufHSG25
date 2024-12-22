@@ -350,7 +350,7 @@ def submit():
         return render_template("error.html", error_message="Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es später erneut."), 500
     
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8191, debug=False)
+    app.run(host="0.0.0.0", port=9999, debug=False)
     if not os.path.exists('static'):
         os.makedirs('static')
     if not os.path.exists('static/barcodes'):
