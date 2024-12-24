@@ -26,7 +26,7 @@ logging.warning("Warning message")
 logging.error("Error message")
 logging.critical("Critical message")
 # überprüft Pfade
-if os.path.exists("templates/index.html") and os.path.exists("templates/error.html"):
+if os.path.exists("templates/index.html") and os.path.exists("templates/error.html") and os.path.exists("templates/confirmation.html"):
     print("Template Pfade 'index' und 'error' vorhanden = TRUE")
 
 #Zieht aktuelle Zeit für Insert in db
@@ -195,6 +195,8 @@ def init_db():
             identifier TEXT UNIQUE NOT NULL,
             vorname TEXT NOT NULL,
             nachname TEXT NOT NULL,
+            age_user INTEGER NOT NULL,
+            jahrgang INTEGER NOT NULL,
             category TEXT NOT NULL,
             bezahlt BOOLEAN NOT NULL DEFAULT 0
         );  
