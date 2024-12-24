@@ -373,6 +373,9 @@ log_area.pack(padx=10, pady=5, fill="both")
 log_area.tag_configure("warning", foreground="yellow")
 log_area.tag_configure("highlight", foreground="yellow", font=("Courier", 10, "bold"))
 
+log_area.tag_configure("good", foreground="green", font=("Courier", 10, "bold"))
+
+
 # Tabelle
 table_label = tk.Label(root, text="Daten:")
 table_label.pack(pady=5)
