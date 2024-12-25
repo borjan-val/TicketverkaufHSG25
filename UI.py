@@ -21,9 +21,13 @@ class bcolors:
 
 start_ssh_path = 'HostDeploySP.ssh'
 stop_ssh_path = 'global STOP.sh'
+action_stack = []  # Stapel für vergangene Aktionen
+undo_stack = []
+redo_stack = []    # Stapel für rückgängig gemachte Aktionen
 
 # Globale Variable für den Verbindungsstatus
 db_connected = False  # Anfangs keine Verbindung
+
 # Funktion für die Verbindung zur Datenbank
 def bounce_icon(icon_name, steps=5, interval=50):
     """Lässt das Icon hüpfen, außer es ist das Standard-Icon."""
@@ -41,6 +45,45 @@ def bounce_icon(icon_name, steps=5, interval=50):
             canvas.move(icon_label, 0, -steps)
             
     bounce_step(1)
+    
+#Rückgängig machen
+def undo_last_action():
+    if not action_stack:
+        log_message("Keine Aktion zum Rückgängig machen.", highlight=True)
+        return
+    
+    last_action = action_stack.pop()
+    redo_stack.append(last_action)  # Für Redo speichern
+    
+    # Aktion rückgängig machen
+    if last_action['type'] == 'update_payment':
+        identifier = last_action['identifier']
+        try:
+            cursor.execute("UPDATE benutzer SET bezahlt = ? WHERE identifier = ?", (last_action['old_value'], identifier))
+            conn.commit()
+            log_message(f"Bezahlstatus für '{identifier}' rückgängig gemacht.", highlight=True)
+        except sqlite3.Error as e:
+            log_message(f"Fehler beim Rückgängigmachen: {e}", error=True)
+            
+def redo_last_action():
+    if not redo_stack:
+        log_message("Keine Aktion zum Wiederholen verfügbar.", highlight=True)
+        return
+    
+    last_redo = redo_stack.pop()
+    action_stack.append(last_redo)  # Zurück in den Aktionsstapel
+    
+    # Aktion erneut ausführen
+    if last_redo['type'] == 'update_payment':
+        identifier = last_redo['identifier']
+        try:
+            cursor.execute("UPDATE benutzer SET bezahlt = ? WHERE identifier = ?", (last_redo['new_value'], identifier))
+            conn.commit()
+            log_message(f"Bezahlstatus für '{identifier}' wiederholt.", highlight=True)
+        except sqlite3.Error as e:
+            log_message(f"Fehler beim Wiederholen: {e}", error=True)
+
+
     
 def connect_to_db():
     global conn, cursor, db_connected
@@ -364,13 +407,36 @@ toggle_button.pack(side="left", padx=5)
 info_button = tk.Button(button_frame, text="Info", command=show_info)
 info_button.pack(side="left", padx=5)
 
+# Bilder für undo/redo Buttons laden
+undo_icon = Image.open("static/images/icons/undoRedo.png")
+undoInac_icon = Image.open("static/images/icons/undoRedo_inactive.png")
+
+# Redo-Bilder durch Spiegelung erzeugen
+redo_icon = undo_icon.transpose(Image.FLIP_LEFT_RIGHT)
+redoInac_icon = undoInac_icon.transpose(Image.FLIP_LEFT_RIGHT)
+
+# In Tkinter-kompatible Bilder konvertieren
+undo_icon_tk = ImageTk.PhotoImage(undo_icon)
+undoInac_icon_tk = ImageTk.PhotoImage(undoInac_icon)
+redo_icon_tk = ImageTk.PhotoImage(redo_icon)
+redoInac_icon_tk = ImageTk.PhotoImage(redoInac_icon)
+
+# Buttons erstellen
+undo_button = tk.Button(button_frame, image=undo_icon_tk, command=undo_last_action, borderwidth=0, highlightthickness=0)
+undo_button.pack(side="left", padx=5)
+
+redo_button = tk.Button(button_frame, image=redo_icon_tk, command=redo_last_action, borderwidth=0, highlightthickness=0)
+redo_button.pack(side="left", padx=5)
+
 # Verlauf
 log_label = tk.Label(root, text="Verlauf:")
 log_label.pack(pady=5)
 
 log_area = tk.Text(root, height=8, state="normal", wrap="word", bg="#2b2b2b", fg="white", font=("Courier", 10))
 log_area.pack(padx=10, pady=5, fill="both")
-log_area.tag_configure("warning", foreground="yellow")
+log_area.tag_configure("warning", foreground="yellow", font=("bold"))
+log_area.tag_configure("error", foreground="red", font=("bold"))
+log_area.tag_configure("success", foreground="green")
 log_area.tag_configure("highlight", foreground="yellow", font=("Courier", 10, "bold"))
 
 log_area.tag_configure("good", foreground="green", font=("Courier", 10, "bold"))
