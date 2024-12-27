@@ -67,7 +67,7 @@ While designed for school parties, it can be repurposed for other events as it p
 ---
 
 ### Setting Up the Database
-
+( normally, running the application for the first time should initiallise the database and this step can be skipped. )
 Run the following commands to initialize the database:
 
 	```bash
