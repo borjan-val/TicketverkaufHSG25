@@ -15,6 +15,10 @@ import re
 from datetime import datetime
 
 
+logging.basicConfig(filename='app.log', level=logging.DEBUG, 
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+
 app = Flask(__name__, template_folder='templates')
 request_count = 0
 app.secret_key = secrets.token_hex(16)  # Sicherer Schlüssel für die Sessions
@@ -189,7 +193,7 @@ def init_db():
 
 
         
-    ''')
+    ''')   
     c.execute('''
         CREATE TABLE IF NOT EXISTS PayState_scanned (
             identifier TEXT UNIQUE NOT NULL,
@@ -201,6 +205,7 @@ def init_db():
             bezahlt BOOLEAN NOT NULL DEFAULT 0
         );  
     ''')
+    
     c.execute('''
         CREATE TRIGGER IF NOT EXISTS after_insert_on_PayState_scanned
         AFTER INSERT ON PayState_scanned
@@ -244,10 +249,10 @@ def index():
                                ip_address=ip_address)
     else:
         #regulärer Ausdruck zum blockieren von Desktop Zugriff
-        return render_template('error.html', error_code=403, error_message="Zugriff verweigert"), 403
+    #    return render_template('error.html', error_code=403, error_message="Zugriff verweigert"), 403
         
         #vorhande zum testen:
-    #    return render_template('index.html', ip_address=ip_address)
+       return render_template('index.html', ip_address=ip_address)
                                 
 #leitet bei Neustart zurück zur Startseite und cleared Einträge
 @app.route('/restart', methods=['GET'])
@@ -352,7 +357,7 @@ def submit():
         return render_template("error.html", error_message="Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es später erneut."), 500
     
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=9999, debug=False)
+    app.run(host="0.0.0.0", port=8191, debug=True)
     if not os.path.exists('static'):
         os.makedirs('static')
     if not os.path.exists('static/barcodes'):
