@@ -18,13 +18,17 @@ To start the production server run HostDeploySP.sh or
 
 	PORT=8191
 	SCRIPT_DIR=$(dirname "$(realpath "$0")")
-	echo "Wechsle in das Verzeichnis: $SCRIPT_DIR"
 	cd "$SCRIPT_DIR"
 	source venv/bin/activate
 	gunicorn -w 11 -b 0.0.0.0:$PORT app:app  --access-logfile - --access-logformat '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
 
 might want to adjust GUnicorn workers to machine.
-For testing and development use testhost.sh 
+For testing and development use testhost.sh or
+
+ 	cd /path/to/Ticketverkauf
+	python3 app.py
+
+ 
 
 
 
