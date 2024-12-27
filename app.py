@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
 from flask import Flask, request, render_template, redirect, url_for, send_file, session
-from flask_admin import Admin
-from flask_sqlalchemy import SQLAlchemy
-from flask_admin.contrib.sqla import ModelView
+import sqlite3
 import random
 import os
 import datetime
@@ -15,88 +13,22 @@ import threading
 import logging
 import re
 from datetime import datetime
-from sqlalchemy.orm import declarative_base
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, event
-from sqlalchemy.orm import sessionmaker
 
-
-app = Flask(__name__, template_folder='templates')
-request_count = 0
 
 logging.basicConfig(filename='app.log', level=logging.DEBUG, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Initialisiere SQLAlchemy
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////Users/can/Desktop/Ticketverkauf/datenbank.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config["SECRET_KEY"] = "mysecret"
-db = SQLAlchemy(app)
 
-# Initialisiere Flask-Admin
-admin = Admin(app, name='Admin Panel', template_mode='bootstrap4')
-
-Base = declarative_base()
-class Benutzer(db.Model):
-    __tablename__ = 'benutzer'
-    
-    # Definiere die Spalten
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    vorname = db.Column(db.String(80), nullable=False)
-    nachname = db.Column(db.String(80), nullable=False)
-    age_user = db.Column(db.Integer, nullable=False)
-    jahrgang = db.Column(db.Integer, nullable=False)
-    identifier = db.Column(db.String(120), unique=True, nullable=False)
-    anmeldedatum = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)  # Default für aktuelle Zeit
-    bezahlt = db.Column(db.Boolean, default=False)
-    scanned = db.Column(db.Integer, default=0)
-    category = db.Column(db.String(50), default='Gast', nullable=False)
-    last_scantime = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    ip_address = db.Column(db.String(120), nullable=False)
-    anmerkung = db.Column(db.Text, nullable = True)
-    
-    def __repr__(self):
-        return f'<Benutzer {self.vorname} {self.nachname}>'
-    
-# Beispiel für die andere Klasse
-class PayStateScanned(db.Model):
-    __tablename__ = 'paystate_scanned'
-    identifier = db.Column(db.ForeignKey("benutzer.identifier"), nullable=False, primary_key=True)
-    vorname = db.Column(db.String(80), nullable=False)
-    nachname = db.Column(db.String(80), nullable=False)
-    age_user = db.Column(db.Integer, nullable=False)
-    jahrgang = db.Column(db.Integer, nullable=False)
-    category = db.Column(db.String(50), nullable=False)
-    bezahlt = db.Column(db.Boolean, default=False)
-    
-    def __repr__(self):
-        return f'<PayStateScanned {self.vorname} {self.nachname}>'
-    
-class PayStateView(ModelView):
-    can_delete = False
-    
-# Die Statistik-Klasse
-class Stats(db.Model):
-    __tablename__ = 'stats'
-    
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    page = db.Column(db.String(80), nullable=False)
-    count = db.Column(db.Integer, default=0, nullable=False)
-    
-    def __repr__(self):
-        return f'<Stats {self.page}>'
-
+app = Flask(__name__, template_folder='templates')
+request_count = 0
 app.secret_key = secrets.token_hex(16)  # Sicherer Schlüssel für die Sessions
-
 active_connections = 0  # Initialisierung der globalen Zählung
-
 print("Templates-Verzeichnis:", os.path.abspath("templates"))
-
 logging.debug("Debug message")
 logging.info("Info message")
 logging.warning("Warning message")
 logging.error("Error message")
 logging.critical("Critical message")
-
 # überprüft Pfade
 if os.path.exists("templates/index.html") and os.path.exists("templates/error.html") and os.path.exists("templates/confirmation.html"):
     print("Template Pfade 'index' und 'error' vorhanden = TRUE")
@@ -105,6 +37,7 @@ if os.path.exists("templates/index.html") and os.path.exists("templates/error.ht
 anmeldedatum = datetime.now().strftime('%Y-%m-%d %H:%M:%S:%f')
 # Zeitstempel in Millisekunden
 current_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+
 
 def is_valid_name(name):
     return bool(re.match(r'^[A-Za-zÄäÖöÜüß-]+$', name))
@@ -145,7 +78,21 @@ class bcolors:
     ORANGE = '\033[38;5;214m'
 random_charakters_bar = "qwertzuiopasdfghjklyxcvbnmQWERTZUIOPASDFGHJKLYXCVBNM1234567890!@#$%^&()-_=+[].,"
 os.makedirs('static/tickets', exist_ok=True)
-
+def count_registrations_with_ip():
+    # Verbindung zur Datenbank herstellen
+    conn = sqlite3.connect('datenbank.db')
+    cursor = conn.cursor()
+    
+    # SQL-Abfrage, um die Anzahl der Zeilen mit nicht-NULL ip_address zu zählen
+    cursor.execute("SELECT COUNT(*) FROM registrations WHERE ip_address IS NOT NULL")
+    result = cursor.fetchone()
+    
+    # Anzahl der Anmeldungen mit gültiger IP-Adresse
+    total_with_ip = result[0]
+    
+    # Schließe die Verbindung zur Datenbank
+    conn.close()
+    print(f"{bcolors.OKBLUE}Insgesamt {bcolors.ORANGE}{total_with_ip}{bcolors.OKBLUE} Anmeldungen mit gültiger IP-Adresse{bcolors.ENDC}")
 def update_total_requests():
     # Gesamtzahl der Zugriffe in einer Datei speichern
     stats_dir = 'stats'
@@ -162,38 +109,27 @@ def update_total_requests():
     with open(stats_file, 'w') as f:
         f.write(str(total_requests))
     return total_requests
-
 # erstellt einzigartigen identifier für Person
 def generate_user_id(registration_number, age_user, jahrgang):
     formatted_number = f"{registration_number:03d}"
+    # Personendaten: Nummer, Alter und Klasse
     personal_data = f"{formatted_number}{age_user}{jahrgang}="
+    # Generierung von x zufälligen Zeichen
     random_suffix =''.join(random.choice(random_charakters_bar) for _ in range(10))
     #bei range(10) gibt es 53,783,827,851,266,404,096 verschiedene kombinationen, für dekodierung über 3 Jahre
     return personal_data + random_suffix
-
-def generate_unique_user_id(registration_number, age_user, jahrgang):
-    while True:
-        identifier = generate_user_id(registration_number, age_user, jahrgang)
-        # Überprüfe, ob der identifier bereits existiert
-        if not Benutzer.query.filter_by(identifier=identifier).first():
-            break
-    return identifier
-
-
-## Neue Version mit SQLAlchemy:
-#def add_user_to_db(vorname, nachname, age_user, jahrgang, identifier, ip_address):
-#   new_user = Benutzer(
-#       vorname=vorname,
-#       nachname=nachname,
-#       age_user=age_user,
-#       jahrgang=jahrgang,
-#       identifier=identifier,
-#       ip_address=ip_address,
-#       anmeldedatum=datetime.now()
-#   )
-#   db.session.add(new_user)
-#   db.session.commit()
-    
+def add_user_to_db(vorname, nachname, age_user, jahrgang, identifier, ip_address):
+    conn = sqlite3.connect('datenbank.db')
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO benutzer (
+            vorname, nachname, age_user, jahrgang, identifier, anmeldedatum,
+            ip_address)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (vorname, nachname, age_user, jahrgang, identifier, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+          ip_address))
+    conn.commit()
+    conn.close()
 def generate_barcode(identifier):
     try:
         writer = ImageWriter()
@@ -209,34 +145,85 @@ def generate_barcode(identifier):
     except Exception as e:
         print(f"{bcolors.WARNING}Fehler bei der Barcode-Erstellung: {e}{bcolors.ENDC}")
         return None
+def init_stats_db():
+    conn = sqlite3.connect('datenbank.db')
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS stats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            page TEXT NOT NULL,
+            count INTEGER NOT NULL DEFAULT 0
+        )
+    ''')
+    c.execute('INSERT OR IGNORE INTO stats (id, page, count) VALUES (1, "index", 0)')
+    conn.commit()
+    conn.close()
     
-    
-# Neue Version mit SQLAlchemy:
 def increment_request_count():
-    stat = db.session.query(Stats).filter_by(page="index").first()
-    if stat:
-        stat.count += 1
-    else:
-        stat = Stats(page="index", count=1)
-        db.session.add(stat)
-    db.session.commit()
-    return stat.count
+    conn = sqlite3.connect('datenbank.db')
+    c = conn.cursor()
+    c.execute('UPDATE stats SET count = count + 1 WHERE page = "index"')
+    c.execute('SELECT count FROM stats WHERE page = "index"')
+    total_requests = c.fetchone()[0]
+    conn.commit()
+    conn.close()
+    return total_requests
 
-
+# Initialisierung der Statistik-Datenbank
+init_stats_db()
 def init_db():
-    # Setze den Anwendungskontext, um mit der Datenbank zu arbeiten
-    with app.app_context():
-        db.create_all()
+    conn = sqlite3.connect('datenbank.db')
+    c = conn.cursor()
+    c.execute('''
+    
+        CREATE TABLE IF NOT EXISTS Benutzer (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vorname TEXT NOT NULL,
+            nachname TEXT NOT NULL,
+            age_user INTEGER NOT NULL,
+            jahrgang INTEGER NOT NULL,
+            identifier TEXT UNIQUE NOT NULL,
+            anmeldedatum DATETIME NOT NULL,
+            bezahlt BOOLEAN NOT NULL DEFAULT 0,
+            scanned INTEGER NOT NULL DEFAULT 0,
+            category TEXT NOT NULL DEFAULT 'Gast',
+            last_scantime DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            ip_address TEXT NOT NULL
+        );
+
+
         
-        # Initialisiere 'stats' Tabelle mit Standardwerten, falls nicht vorhanden
-        index_stat = db.session.query(Stats).filter_by(page="index").first()
-        if not index_stat:
-            index_stat = Stats(page="index", count=0)
-            db.session.add(index_stat)
-            db.session.commit()
-            
-        # Erstelle Verzeichnisse, falls nicht vorhanden
-        os.makedirs('static/barcodes', exist_ok=True)
+    ''')   
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS PayState_scanned (
+            identifier TEXT UNIQUE NOT NULL,
+            vorname TEXT NOT NULL,
+            nachname TEXT NOT NULL,
+            age_user INTEGER NOT NULL,
+            jahrgang INTEGER NOT NULL,
+            category TEXT NOT NULL,
+            bezahlt BOOLEAN NOT NULL DEFAULT 0
+        );  
+    ''')
+    
+    c.execute('''
+        CREATE TRIGGER IF NOT EXISTS after_insert_on_PayState_scanned
+        AFTER INSERT ON PayState_scanned
+        FOR EACH ROW
+        BEGIN
+            UPDATE PayState_scanned
+            SET
+                vorname = (SELECT vorname FROM Benutzer WHERE Benutzer.identifier = NEW.identifier),
+                nachname = (SELECT nachname FROM Benutzer WHERE Benutzer.identifier = NEW.identifier),
+                category = (SELECT category FROM Benutzer WHERE Benutzer.identifier = NEW.identifier)
+            WHERE identifier = NEW.identifier;
+        END;
+''')
+    conn.commit()
+    conn.close()
+    if not os.path.exists('static/barcodes'):
+        os.makedirs('static/barcodes')
+init_db()
 
 @app.before_request
 def before_request():
@@ -272,14 +259,11 @@ def index():
 def restart():
     try:
         ip_address = request.remote_addr
-        
-        # Update IP-Adresse des Benutzers auf 0, indem wir SQLAlchemy verwenden
-        benutzer = Benutzer.query.filter_by(ip_address=ip_address).all()
-        for user in benutzer:  # Entferne .items() und iteriere direkt
-            user.ip_address = "0"  # Setze die IP-Adresse auf "0"
-        
-        db.session.commit()  # Änderungen in der Datenbank speichern
-        
+        conn = sqlite3.connect('datenbank.db')
+        c = conn.cursor()
+        c.execute("UPDATE benutzer SET ip_address = ? WHERE ip_address = ?", (0, ip_address))
+        conn.commit()
+        conn.close()
         return redirect(url_for('index'))
     except Exception as e:
         print(f"{bcolors.WARNING}Fehler beim Neustarten: {str(e)}{bcolors.ENDC}")
@@ -290,116 +274,93 @@ def restart():
 def get_barcode(identifier):
     user_agent = request.user_agent
     user_ip = request.remote_addr
-    
-    # Überprüfe, ob der Zugriff von einem mobilen Gerät kommt
     if user_agent.platform not in ['android', 'iphone', 'ipad']:
         error_message = "Seite nicht für Desktop verfügbar"
         return render_template('error.html', error_code=403, error_message=error_message), 403
-    
-    # Überprüfe, ob der Benutzer mit dem gegebenen Identifier existiert und ob die IP-Adresse übereinstimmt
-    user = Benutzer.query.filter_by(identifier=identifier).first()
-    if not user or user.ip_address != user_ip:
+    conn = sqlite3.connect('datenbank.db')
+    c = conn.cursor()
+    c.execute("SELECT ip_address FROM benutzer WHERE identifier = ?", (identifier,))
+    result = c.fetchone()
+    conn.close()
+    session.clear()
+    if not result or result[0] != user_ip:
         error_message = "IP-Adresse passt nicht zum Benutzer"
         return render_template('error.html', error_code=403, error_message=error_message), 403
-    
-    # Überprüfe, ob die Barcode-Datei existiert
     barcode_path = os.path.join('static', 'barcodes', f"{identifier}.png")
     if not os.path.exists(barcode_path):
         error_message = "Der angeforderte Barcode existiert nicht"
         return render_template('error.html', error_code=404, error_message=error_message), 404
-    
-    # Sende die Barcode-Datei
     return send_file(barcode_path)
-
-from datetime import datetime
 
 @app.route('/submit', methods=['POST'])
 def submit():
+    count_registrations_with_ip
     try:
-        print(f"Form Data: {request.form}")
         # Formulardaten abrufen und validieren
-        age_user = request.form.get('age', '')
-        jahrgang = request.form.get('jahrgang', '')
-        vorname = request.form.get('vorname', '')
-        nachname = request.form.get('nachname', '')
+        vorname = request.form.get('vorname')
+        nachname = request.form.get('nachname')
+        age_user = request.form.get('age')
+        jahrgang = request.form.get('jahrgang')
         
-        # Validierung der Eingabewerte
-        if not validate_name(vorname) or not validate_name(nachname):
-            return render_template('error.html', error_message="Ungültiger Vorname oder Nachname! Nur Buchstaben und Leerzeichen sind erlaubt.")
-        
-
-        print(f"Type of form data: {type(request.form)}")
         
         # IP-Adresse des Benutzers ermitteln
-        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0]
-        
-        # Logging der empfangenen Daten
-        print(f"{bcolors.OKGREEN}Empfangene Daten: Vorname={vorname}, Nachname={nachname}, Alter={age_user}, Jahrgang={jahrgang}, ip={ip_address}{bcolors.ENDC}")
-        
-        # Den aktuellen Zeitstempel für das Anmelde-Datum als datetime-Objekt
-        current_timestamp = datetime.now()
-        
-        # Benutzer mit derselben IP überprüfen
-        existing_user = Benutzer.query.filter_by(ip_address=ip_address).first()
-        
-        if existing_user:
-            # Rückgabe der Bestätigungsseite für bestehenden Benutzer
-            return render_template('confirmation.html', 
-                                   vorname=existing_user.vorname, 
-                                   nachname=existing_user.nachname, 
-                                   age_user=existing_user.age_user, 
-                                   jahrgang=existing_user.jahrgang, 
-                                   identifier=existing_user.identifier,
-                                   ip_address=existing_user.ip_address,
-                                   id=existing_user.id,
-                                   anmeldedatum=existing_user.anmeldedatum)
-        
-        # Anmeldungsnummer ermitteln
-        registration_number = Benutzer.query.count() + 1
-        
-        # Neuen Benutzer erstellen
-        identifier = generate_unique_user_id(registration_number, int(age_user), int(jahrgang))
-        
-        # Neuer Benutzer in der Datenbank speichern
-        new_user = Benutzer(vorname=vorname, nachname=nachname, age_user=int(age_user), 
-                            jahrgang=int(jahrgang), identifier=identifier, 
-                            ip_address=ip_address, anmeldedatum=current_timestamp)
-        
-        db.session.add(new_user)
-        db.session.commit()
-        
-        # Barcode generieren (aufrufen einer Funktion)
+        ip_address = request.remote_addr
+    # Logging der empfangenen Daten
+        print(f"{bcolors.OKGREEN}Empfangene Daten: Vorname={vorname}, Nachname={nachname}, Alter={age_user}, Jahrgang={jahrgang},ip={ip_address}{bcolors.ENDC}")
+        # SQLite-Verbindung und Datenbankzugriff
+        with sqlite3.connect('datenbank.db') as conn:
+            c = conn.cursor()
+            
+            # Anmeldungsnummer ermitteln
+            c.execute("SELECT COUNT(*) FROM benutzer")
+            registration_number = c.fetchone()[0] + 1
+            
+            # Benutzer mit derselben IP prüfen
+            c.execute("SELECT * FROM benutzer WHERE ip_address = ?", (ip_address,))
+            existing_user = c.fetchone()
+            
+            if existing_user:
+                return render_template('confirmation.html', 
+                                        vorname=existing_user[1], 
+                                        nachname=existing_user[2], 
+                                        age_user=existing_user[3], 
+                                        jahrgang=existing_user[4], 
+                                        identifier=existing_user[5],
+                                        ip_address=existing_user[6],
+                                        id=existing_user[0],
+                                        anmeldedatum=existing_user[7])
+            
+            # Neuen Benutzer erstellen
+            identifier = generate_user_id(registration_number, int(age_user), int(jahrgang))
+            c.execute("INSERT INTO benutzer (vorname, nachname, age_user, jahrgang, identifier, ip_address, anmeldedatum) VALUES (?, ?, ?, ?, ?, ?, ?)", 
+                (vorname, nachname, int(age_user), int(jahrgang), identifier, ip_address, current_timestamp))
+            
+            # Neu erstellten Benutzer abrufen
+            c.execute("SELECT * FROM benutzer WHERE identifier = ?", (identifier,))
+            new_user = c.fetchone()
+            
+            # Barcode generieren
         generate_barcode(identifier)
         
-        # Bestätigungsseite für den neuen Benutzer rendern
+        # Bestätigungsseite rendern
         return render_template('confirmation.html', 
-                               vorname=vorname, 
-                               nachname=nachname, 
-                               age_user=int(age_user), 
-                               jahrgang=int(jahrgang), 
-                               identifier=identifier,
-                               ip_address=ip_address,     
-                               anmeldedatum=current_timestamp,
-                               id=new_user.id)
-    
+                                vorname=vorname, 
+                                nachname=nachname, 
+                                age_user=int(age_user), 
+                                jahrgang=int(jahrgang), 
+                                identifier=identifier,
+                                ip_address=ip_address,     
+                                anmeldedatum=anmeldedatum,
+                                id=new_user[0])
     except Exception as e:
         print(f"Fehler im submit-Handler: {str(e)}")
         return render_template("error.html", error_message="Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es später erneut."), 500
     
-# Füge Models zu Flask-Admin hinzu
-admin.add_view(ModelView(Benutzer, db.session))
-admin.add_view(ModelView(PayStateScanned, db.session))
-admin.add_view(ModelView(Stats, db.session))
-
 if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8191, debug=True)
     if not os.path.exists('static'):
         os.makedirs('static')
     if not os.path.exists('static/barcodes'):
         os.makedirs('static/barcodes')
     # Initialisiere die Datenbank
     init_db()
-    
-    app.run(host="0.0.0.0", port=8191, debug=True)
-    
-
-    
