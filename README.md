@@ -75,6 +75,7 @@ Run the following commands to initialize the database:
 	flask db migrate -m "Initial migration."
 	flask db upgrade
 	```
+ ( normally, running the application for the first time should initiallise the database and this step can be skipped. )
 
 ---
 
