@@ -332,7 +332,7 @@ def submit():
             
             # Neuen Benutzer erstellen
             identifier = generate_user_id(registration_number, int(age_user), int(jahrgang))
-            c.execute("INSERT INTO benutzer (vorname, nachname, age_user, jahrgang, identifier, ip_address, anmeldedatum) VALUES (?, ?, ?, ?, ?, ?, ?)", 
+            c.execute("INSERT INTO benutzer (vorname, nachname, age_user, jahrgang, identifier, ip_address, anmeldedatum) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (vorname, nachname, int(age_user), int(jahrgang), identifier, ip_address, current_timestamp))
             
             # Neu erstellten Benutzer abrufen
@@ -349,7 +349,7 @@ def submit():
                                 age_user=int(age_user), 
                                 jahrgang=int(jahrgang), 
                                 identifier=identifier,
-                                ip_address=ip_address,     
+                                ip_address=ip_address,
                                 anmeldedatum=anmeldedatum,
                                 id=new_user[0])
     except Exception as e:
