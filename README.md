@@ -1,3 +1,5 @@
+> # THIS PROJECT IS INCOMPLETE AND HAS BEEN ABANDONED
+
 # Ticket Sale System for HSG School Party 2025
 
 This project is a web-based system for managing ticket sales for the HSG school party in 2025. It allows administrators to create events, manage tickets, and track sales, while attendees can conveniently purchase tickets online.
